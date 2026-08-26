@@ -1,5 +1,7 @@
 # BancaLink
 
+[![Licencia: AGPLv3](https://img.shields.io/badge/Licencia-AGPLv3-blue.svg)](LICENSE)
+
 **Tus finanzas, sin que nadie más las vea.**
 
 BancaLink es una aplicación de finanzas personales **libre, gratuita y de conocimiento cero** para Costa Rica. Lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos — sin que BancaLink, ni nadie más, pueda ver jamás el contenido de esos correos ni tus transacciones.
