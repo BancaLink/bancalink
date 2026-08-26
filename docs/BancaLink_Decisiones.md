@@ -20,7 +20,7 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 
 * **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[Extra\] Figura legal.  
 * **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial.  
-* **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias.
+* **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
 
@@ -137,6 +137,27 @@ Si la app suma solo lo que ve en los correos, tarde o temprano te va a decir que
 En vez de esconder eso, lo mostramos. Vos podés decirle a la app cuánto tenés de verdad en la cuenta (a mano, o importando tu estado de cuenta), y la app te muestra la diferencia y te deja registrar el ajuste.
 
 Esto tiene una ventaja que nos parece importante: **la app se corrige sola.** Un gasto en efectivo que nunca anotaste en marzo deja de arrastrar el error hasta agosto en cuanto le confirmás un saldo real más reciente. Sin esto, los errores se acumulan para siempre — y esa es justamente la razón por la que la gente termina abandonando las apps de finanzas.
+
+### **D18 — De dónde sale el tipo de cambio (26 Agosto 2026\)**
+
+*Decisión nueva, surgida al preguntarnos si la app sirve fuera de Costa Rica.*
+
+D11 dice que guardamos la moneda original y convertimos solo al mostrar. Faltaba decir **de dónde sale esa conversión**. La respuesta obvia era "del BCCR", pero eso amarraba la app a Costa Rica sin necesidad: todo lo demás del diseño funciona igual en cualquier país.
+
+**La fuente del tipo de cambio es intercambiable, y se define como configuración, no como código.** Igual que los *parsers* de bancos (D7): un proveedor nuevo, o el reemplazo de uno que dejó de funcionar, es un archivo que la comunidad puede escribir y revisar — no una versión nueva de la app. Las APIs de tipo de cambio gratuitas cierran, empiezan a cobrar o meten límites de uso con frecuencia; no queremos que eso obligue a publicar una versión de emergencia.
+
+**El indicador oficial del BCCR sigue siendo el predeterminado en Costa Rica**, y eso no es inercia: para cualquier cosa que roce lo tributario o contable, el tipo de cambio oficial no es equivalente al de una API cualquiera. Lo que agregamos son alternativas, no un reemplazo.
+
+**Hay un detalle incómodo:** la API del BCCR exige una llave. Una llave no puede vivir dentro de la app — el código es abierto y auto-hospedable, así que estaría a la vista de todos. Y pedirle a cada persona que tramite la suya sería exactamente el tipo de fricción que D4 nos prohíbe. La salida: **en la instancia hospedada, el relay consulta el BCCR una vez al día con la llave de quien opera el servidor, y le sirve a todo el mundo la misma tabla de tipos de cambio.** Quien se auto-hospede pone su propia llave, elige otro proveedor, o no usa ninguno.
+
+Esto le agrega una función al relay, así que vale ser explícitos sobre por qué **no rompe D2 ni D12**:
+
+- El relay sigue sin entender un solo correo. La tabla de tipos de cambio es un dato público que no tiene nada que ver con vos.
+- La respuesta es **idéntica para todo el mundo** y no lleva autenticación. El cliente pide "la tabla de hoy", nunca "convertime colones a dólares". Si preguntara por pares de monedas específicos, el patrón de consultas delataría en qué monedas tenés plata; pidiendo la tabla completa, no se filtra nada.
+
+**Siempre tiene que poder funcionar sin red y sin proveedor.** Podés escribir el tipo de cambio a mano, y esa opción no se quita nunca. Si la tabla está vieja o no se pudo bajar, la app no se bloquea: muestra los montos en su moneda original y avisa que la conversión está desactualizada — el mismo criterio que aplicamos cuando el relay se cae.
+
+**Sobre qué tipo de cambio se usa:** para lo que estás viendo en pantalla, el más reciente. Pero cuando guardamos un reporte o una foto de un saldo, **se guarda también el tipo de cambio que se usó**. Si no, un reporte que generaste en marzo cambiaría de cifras en agosto sin que nadie lo tocara, y un reporte que se mueve solo no sirve para nada.
 
 ## **4\. Nuestro compromiso legal (Ley 8968\)**
 

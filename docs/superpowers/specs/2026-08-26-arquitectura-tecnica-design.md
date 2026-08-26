@@ -231,9 +231,30 @@ GastoCompartido
 
 "Gastado vs. presupuestado" no es un evento: es una proyección sobre transacciones + categorías + presupuesto vigente. El flujo guiado previsto —*entender los gastos primero, sugerir un presupuesto después, acompañar el ajuste*— calcularía promedio o mediana por categoría sobre el log ya materializado: 100% local, sin IA y sin servidor. Está diseñado pero **diferido fuera de v1**, no descartado.
 
-### Moneda (D11)
+### Moneda (D11, D18)
 
-Cada transacción guarda valor y moneda originales. La conversión ocurre solo al mostrar reportes, contra el tipo de cambio del indicador oficial del BCCR, cacheado localmente para que los reportes funcionen sin red.
+Cada transacción guarda valor y moneda originales. La conversión ocurre solo al mostrar reportes, contra una tabla de tipos de cambio cacheada localmente para que los reportes funcionen sin red.
+
+**La fuente es conectable (D18).** Un proveedor se declara como configuración, no como adaptador compilado — mismo criterio que los parsers (D7), por la misma razón: las APIs de tipo de cambio gratuitas cambian condiciones o desaparecen, y eso no debe forzar una release.
+
+```yaml
+proveedor: bccr
+nombre:    "Indicador oficial del BCCR"
+url:       "https://apim.bccr.fi.cr/SDDE/api/Bccr.Ge.SDDE.Publico.Indicadores.API"
+requiereLlave: true          # inyectada por entorno en el relay, nunca en el cliente
+monedaBase:    CRC
+```
+
+**Modelo de obtención:**
+
+- El cliente pide **la tabla completa del día**, nunca un par de monedas específico. Consultar por pares filtraría qué monedas tiene la persona — inaceptable bajo D12. La respuesta es idéntica para todos los clientes y no lleva autenticación (contrasta con el endpoint de blobs, que sí exige firma).
+- La API del BCCR exige llave. En la instancia hospedada **el relay la consulta una vez al día con la llave del operador (variable de entorno) y redistribuye la tabla**; la llave nunca llega al cliente, que es código abierto y auto-hospedable. Esto no compromete D2: la tabla es un dato público, sin relación con ningún usuario.
+- Quien se auto-hospede configura su propia llave, otro proveedor, o ninguno.
+- **Piso sin red:** entrada manual del tipo de cambio, siempre disponible. Nunca se elimina.
+
+**Degradación:** si la tabla falta o está vencida, no se bloquea nada — se muestran los montos en moneda original con la conversión marcada como desactualizada. Mismo criterio que "Relay caído" (§8).
+
+**Tipo de cambio histórico:** las vistas en vivo usan el más reciente. Todo artefacto persistido —reporte guardado, `SaldoReportado`— **almacena el tipo de cambio aplicado** junto al dato. Sin eso, un reporte generado en marzo mostraría cifras distintas en agosto sin que nadie lo modifique.
 
 ---
 

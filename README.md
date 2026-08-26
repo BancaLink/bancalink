@@ -52,7 +52,7 @@ Técnicamente sí, y por diseño más que por casualidad. Nada del núcleo —el
 
 Lo que sí está atado a Costa Rica hoy:
 
-- **El tipo de cambio** se consulta contra el indicador oficial del BCCR. Soportar otra fuente por país es un cambio acotado, y vive en la capa de presentación.
+- **La fuente del tipo de cambio** viene configurada con el indicador oficial del BCCR, pero es intercambiable: un proveedor se declara como configuración, igual que un parser ([D18](docs/BancaLink_Decisiones.md)). Agregar el de otro país no requiere tocar la app.
 - **La biblioteca de parsers** arranca con bancos costarricenses, simplemente porque es donde estamos.
 - **El objetivo 2** —empujar un estándar de banca abierta— se dirige al BCCR y la SUGEF. Otro país necesitaría su propio frente.
 - **El marco legal** que seguimos es la Ley 8968.
