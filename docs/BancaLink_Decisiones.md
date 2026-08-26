@@ -19,7 +19,7 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 ## **Índice rápido de decisiones**
 
 * **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[Extra\] Figura legal.  
-* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial.  
+* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten.  
 * **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
@@ -96,6 +96,34 @@ Hay tres escenarios, de mejor a peor:
 
 Nos comprometemos a decir esto con claridad desde el principio, no en letra chica. Y a insistirte durante la configuración inicial para que dejés al menos un método de recuperación listo — si no, el escenario 3 deja de ser la excepción y se vuelve lo normal.
 
+### **D19 — Dónde vive tu llave de IA (26 Agosto 2026\)**
+
+*Decisión nueva, surgida al detallar cómo funciona D6.*
+
+D6 dice que si querés usar IA para arreglar el parser de tu banco, ponés **tu propia llave de API**. Faltaba decir dónde se guarda esa llave.
+
+**Se guarda solo en tu dispositivo, cifrada con tu llave maestra** (la misma jerarquía de D9). Nunca viaja al relay. Esto último no es un detalle de privacidad sino de plata: si el relay viera tu llave, quien opera el servidor podría gastar de tu cuenta.
+
+**No entra en el respaldo de la nube (D8), salvo que vos lo pidás.** Puede sonar incómodo —significa reponerla si cambiás de dispositivo— pero es a propósito. Perder tu historial financiero es grave, y por eso D16 le dedica toda una escalera de recuperación; perder una llave de API cuesta treinta segundos de revocarla y sacar otra. Como reponerla es barato, no vale la pena tener una credencial con cobros asociados dando vueltas en tu Google Drive.
+
+**Y algo que no es opcional: la llave no va en la bitácora de eventos.** La bitácora de D10 es *append-only*, y eso significa que **lo que entra ahí no se puede borrar nunca**. Si guardáramos la llave como un evento, "revocarla" sería apenas un evento posterior: el valor original quedaría para siempre en el historial, copiado en cada dispositivo y en cada respaldo. Los secretos viven aparte, en su propio espacio, justamente para que borrarlos sea de verdad.
+
+### **D20 — El arreglo de uno le sirve a todos (26 Agosto 2026\)**
+
+*Decisión nueva, surgida al detallar cómo funciona D6.*
+
+Si Pedro usa su llave de IA para arreglar el parser del Banco Beta, **Ana no debería tener que hacer lo mismo la semana siguiente.** El arreglo de Pedro se propone a la biblioteca compartida, se revisa, y de ahí le llega a todo el que use ese banco.
+
+Esto cambia la escala de D6: la IA se usa un puñado de veces **por cada cambio de formato**, no por cada persona. Y alimenta directo el objetivo 2 — cada arreglo deja un registro público y fechado de que la falta de un estándar de banca abierta le cuesta plata y tiempo a la gente.
+
+Tres condiciones, porque distribuirle un archivo a todo el mundo no es cosa menor:
+
+- **Nada se publica solo.** El parser lo genera una IA a partir de un correo real de Pedro, y puede quedar sobreajustado: con el número de cuenta, el nombre o el monto de Pedro escritos adentro. Antes de compartirse pasa por revisión, igual que cualquier cambio en GitHub (D7). Publicación automática, nunca.
+- **Bajar parsers no puede delatar dónde banqueás.** Si la app pidiera *"dame el parser del Banco Beta"*, esa consulta sola diría en qué banco tenés plata. Se baja **el índice completo**, no el de un banco en particular — el mismo criterio que usamos con la tabla de tipos de cambio en D18.
+- **Contribuir es público, y hay que decirlo.** Proponer un arreglo deja tu cuenta de GitHub ligada a tu banco. Tiene que ser una decisión consciente, con opción de enviarlo de forma anónima para quien no quiera eso.
+
+*(Cómo se limpia el parser de datos personales antes de proponerlo es una discusión aparte, todavía abierta — ver "Preguntas abiertas".)*
+
 ## **3\. Producto y Manejo de Datos**
 
 ### **D4 — Diseñado para Ticos, no para informáticos**
@@ -168,6 +196,21 @@ Nos tomamos muy en serio la Ley de Protección de la Persona frente al Tratamien
 * Eliminamos tus correos del servidor inmediatamente después de procesarlos.
 
 **Tareas pendientes para cuando nos acerquemos al lanzamiento:** Necesitamos revisar con un abogado si el historial de gastos se considera un "dato sensible" (porque refleja tu condición socioeconómica) y confirmar si, a pesar de que no guardamos tus cuentas en la nube, nos toca inscribirnos ante la PRODHAB.
+
+## **5\. Preguntas abiertas**
+
+*Cosas que sabemos que hay que decidir, pero que todavía no decidimos. Las dejamos escritas para no descubrirlas tarde.*
+
+### **Cómo se limpia un parser antes de compartirlo (abierta desde el 26 Agosto 2026\)**
+
+D20 exige que un parser se revise antes de distribuirse, porque puede venir sobreajustado con datos personales de quien lo generó. Falta decidir **cómo** se hace esa limpieza. Lo que ya tenemos claro del problema:
+
+- **Tiene que pasar en el dispositivo, antes de que algo salga.** Un chequeo que corra solo al revisar la propuesta llega tarde: para entonces el dato ya es público. Sirve como segunda malla, no como la garantía.
+- **En el relay no puede ser.** Para limpiar habría que ver el correo en claro, y eso rompe D2.
+- **Para el parser, conviene lista blanca y no lista negra.** Un parser es un YAML con un esquema chico y conocido, así que en vez de buscar datos personales para quitarlos (y siempre dejar pasar alguno), se puede validar que solo contenga lo que un parser necesita. Un parser jamás requiere un número de cuenta escrito adentro; si aparece uno, se rechaza.
+- **Para el correo que se le manda a la IA, enmascarar conservando el formato.** `Cuenta: 4521-8891` → `Cuenta: NNNN-NNNN`. La IA necesita ver la forma para escribir el patrón, no el número real — así que acá privacidad y calidad del resultado apuntan al mismo lado.
+- **Detectar nombres es distinto de detectar cédulas.** Las cédulas, cuentas y referencias SINPE tienen formato conocido: para eso, reglas deterministas. Los nombres de persona no, y ahí una biblioteca de reconocimiento de entidades (tipo spaCy) aportaría — pero es probabilística y los modelos en español están entrenados con noticias, así que sobre correos bancarios ticos rendiría regular. Sirve como red de seguridad en revisión, no como la garantía.
+- **Ojo con meter otro lenguaje al monorepo.** spaCy es Python y todo el stack es TypeScript. Como herramienta de mantenedor en CI es aceptable; como código que se distribuye, contradice la arquitectura.
 
 *Nota de equipo: Este documento está vivo. Si en el futuro cambiamos de opinión en alguna de estas decisiones, no borraremos el historial. Simplemente agregaremos la fecha, qué decidimos cambiar y por qué, para mantener nuestra historia transparente.*
 

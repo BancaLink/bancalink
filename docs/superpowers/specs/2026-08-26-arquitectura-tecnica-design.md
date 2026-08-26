@@ -273,6 +273,28 @@ v1 sube el log fusionado completo en cada sincronización, sin deltas — YAGNI 
 
 **Fusión entre dispositivos:** descargar → descifrar → unión de conjuntos descartando IDs duplicados → re-cifrar → subir. Como los IDs son deterministas o UUIDs únicos, la unión siempre converge: no hay conflictos reales que resolver, ni "último en escribir gana", ni intervención del usuario.
 
+### Secretos del usuario (D19)
+
+La llave de API de IA (D6) es el primer secreto que la app custodia y **no puede tratarse como un dato más**.
+
+**Vive fuera del event log — restricción dura, no preferencia.** El log es append-only (D10): lo que entra no sale. Un secreto ahí sería irrevocable, replicado a cada dispositivo y a cada respaldo; "revocado" sería solo un evento posterior con el valor original intacto en el historial. Por eso:
+
+| | Event log | Almacén de secretos |
+|---|---|---|
+| Estructura | Append-only, IDs deterministas | Mutable, borrado real |
+| Store IndexedDB | `events` | `secrets` (separado) |
+| Cifrado | Llave maestra | Llave maestra |
+| Entra en respaldo D8 | Sí | **No** (opt-in explícito) |
+| Participa en la fusión | Sí | No |
+
+**Nunca sale hacia el relay.** No es solo D2: una llave con cobros asociados en manos del operador es un vector de fraude. El cliente llama al proveedor de IA directo.
+
+**Fuera del respaldo por defecto.** La asimetría que lo justifica: perder el historial es catastrófico (de ahí la escalera de D16), perder una llave de API cuesta revocarla y reemitirla. Ante pérdida barata, se prefiere no tener credenciales de cobro replicadas en Drive.
+
+> **Pendiente de verificar antes de construir:** los proveedores de IA suelen bloquear llamadas con origen de navegador (CORS) precisamente para desincentivar llaves en el cliente. Si el mecanismo de excepción no aplica, las alternativas son malas — proxiar por el relay le entregaría el correo en claro *y* la llave. Confirmar antes de comprometerse con el modelo navegador-directo.
+>
+> Riesgo asumido: cualquier XSS o dependencia comprometida en la PWA puede leer una llave que la PWA sabe descifrar. El patrón de uso de D6 (unas pocas llamadas por instalación) acota la exposición, pero conviene sugerir al usuario una llave con límite de gasto.
+
 ---
 
 ## 6. Formato de parsers (D7)
@@ -296,6 +318,18 @@ extraccion:
 El motor es un intérprete declarativo simple: matching por remitente y asunto, extracción por regex, mapeo y coerción de tipos. **Sin `eval` ni ejecución de código arbitrario** — los parsers los contribuye la comunidad y tienen que poder correrse con seguridad sin auditar cada uno línea por línea.
 
 **Banco piloto: BAC o Promerica.** Sus formatos son los más consistentes y documentados (son los que ya soportan las apps existentes), lo que permite validar el diseño técnico antes de enfrentar formatos más irregulares.
+
+### Distribución y contribución (D20)
+
+Un parser generado con IA por una persona debe llegar a todas las demás que usan ese banco. La IA se gasta una vez por cambio de formato, no una vez por usuario.
+
+**Ciclo:** formato roto detectado → el usuario opta por usar su llave (D6, D19) → parser generado localmente → **el usuario decide si lo propone** → revisión humana (PR, D7) → entra a la biblioteca → se distribuye.
+
+**Descarga sin delatar al usuario.** El cliente sincroniza **el índice completo de parsers**, nunca pide uno por banco. Pedir `parsers/banco-beta.yaml` revelaría dónde tiene cuentas quien consulta — el mismo patrón de fuga que la tabla de tipos de cambio en D18, y la misma solución. La biblioteca entera pesa poco (archivos YAML de decenas de líneas), así que bajarla completa es viable indefinidamente.
+
+**Sin publicación automática.** El parser sale de un correo real y puede quedar sobreajustado con datos de quien lo generó — número de cuenta, nombre, monto embebidos en un patrón. Toda propuesta pasa por revisión antes de entrar a la biblioteca. *El mecanismo de limpieza está en discusión — ver "Preguntas abiertas" en el registro de decisiones.*
+
+**Contribuir es un acto público.** Un PR liga la identidad de GitHub de quien contribuye con el banco donde tiene cuentas. Consentimiento explícito, y una vía de envío anónimo para quien no lo quiera.
 
 ---
 
