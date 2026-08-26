@@ -4,7 +4,7 @@
 
 **Tus finanzas, sin que nadie más las vea.**
 
-BancaLink es una aplicación de finanzas personales **libre, gratuita y de conocimiento cero** para Costa Rica. Lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos — sin que BancaLink, ni nadie más, pueda ver jamás el contenido de esos correos ni tus transacciones.
+BancaLink es una aplicación de finanzas personales **libre, gratuita y de conocimiento cero** para Costa Rica. Lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos — pero el servidor que recibe esos correos los cifra al instante y nunca los interpreta. Tus transacciones solo existen descifradas en tu dispositivo.
 
 > **Estado:** el diseño técnico está cerrado y documentado. Todavía **no hay código de aplicación** en este repositorio — lo siguiente es el plan de implementación.
 
@@ -21,7 +21,7 @@ En Costa Rica no existe un estándar de banca abierta (*Open Banking*) que te pe
 BancaLink hace exactamente lo mismo, con dos diferencias:
 
 1. **El código es libre y gratuito, para siempre.** Podés usarlo, auditarlo, modificarlo y hospedarlo vos mismo.
-2. **No podemos leer tus datos aunque quisiéramos.** No es una promesa de política de privacidad; es una consecuencia de cómo está construido.
+2. **No tenés que creernos.** El servidor cifra cada correo apenas lo recibe y jamás lo interpreta; tu historial financiero nunca sale de tus dispositivos sin cifrar. Y como el código es auditable y auto-hospedable, podés verificarlo vos mismo — o correr tu propio relay y sacarnos de la ecuación por completo.
 
 Manejar tu plata es parte de tu salud integral. Tener buenas herramientas para hacerlo no debería ser un lujo reservado para quien puede pagar una suscripción.
 
@@ -38,7 +38,7 @@ Este repositorio cubre el objetivo 1. El objetivo 2 se trabaja en un frente sepa
 ## Cómo funciona
 
 1. Configurás en tu correo (Gmail, iCloud, Yahoo, corporativo — el que sea) una **regla de reenvío automático** hacia una dirección dedicada que te da BancaLink. Nunca te pedimos acceso a tu buzón, y podés cortarlo cuando querás borrando la regla.
-2. Un servidor *relay* mínimo recibe ese correo, lo **cifra de inmediato con tu llave pública** y borra el texto original. El relay nunca puede leer nada.
+2. Un servidor *relay* mínimo recibe ese correo, lo **cifra de inmediato con tu llave pública** y borra el texto original. El relay nunca lo interpreta ni lo guarda en claro: no sabe de qué banco es, ni de cuánto fue el movimiento. Ese instante de recepción es el único punto donde el texto existe sin cifrar — y es justamente por eso que el relay es mínimo, auditable y auto-hospedable.
 3. La app —una PWA instalable— descarga el paquete cifrado, **lo descifra y lo interpreta en tu dispositivo**, y guarda la transacción localmente.
 4. Tus datos se respaldan y sincronizan a través de **tu propia nube** (Google Drive, OneDrive, Dropbox) o un archivo local, siempre cifrados con tu llave.
 
