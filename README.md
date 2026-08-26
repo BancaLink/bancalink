@@ -126,7 +126,9 @@ La razón de definir el modelo de datos completo desde el inicio es que en una a
 
 ## Contribuir
 
-Todavía estamos en la etapa previa a la implementación; pronto habrá guías de contribución, empezando por el formato de los parsers bancarios — pensado para que alguien sin experiencia programando pueda arreglar el correo de su banco.
+Todavía estamos en la etapa previa a la implementación — no hay código de aplicación que aportar, pero sí hay diseño para discutir. Si el proyecto te interesa, empezá por leer [`docs/BancaLink_Decisiones.md`](docs/BancaLink_Decisiones.md) y contanos qué pensás en las [Discussions](../../discussions): dudas, objeciones al diseño, interés en un frente específico (backend, cifrado, parsers bancarios, legal, PWA/mobile) — todo sirve en esta etapa.
+
+Cuando arranque la implementación, las guías de contribución van a empezar por el formato de los parsers bancarios — pensado para que alguien sin experiencia programando pueda arreglar el correo de su banco.
 
 Los aportes de código se firman con [DCO](https://developercertificate.org/) (un *sign-off* en el commit), no con un CLA. Es deliberado: un CLA nos permitiría cambiar la licencia en el futuro, y **no queremos tener ese poder**.
 
