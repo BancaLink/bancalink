@@ -2,9 +2,9 @@
 
 [![Licencia: AGPLv3](https://img.shields.io/badge/Licencia-AGPLv3-blue.svg)](LICENSE)
 
-**Tus finanzas, sin que nadie más las vea.**
+**Finanzas personales libres para Costa Rica. Tus correos bancarios se cifran al llegar y se interpretan solo en tu dispositivo: el servidor nunca los guarda ni los entiende.**
 
-BancaLink es una aplicación de finanzas personales **libre, gratuita y de conocimiento cero** para Costa Rica. Lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos — pero el servidor que recibe esos correos los cifra al instante y nunca los interpreta. Tus transacciones solo existen descifradas en tu dispositivo.
+BancaLink lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos. Es **libre, gratuita, de conocimiento cero y auto-hospedable**: no te pedimos acceso a tu buzón, no te creamos una cuenta, y tus transacciones descifradas nunca salen de tus dispositivos.
 
 > **Estado:** el diseño técnico está cerrado y documentado. Todavía **no hay código de aplicación** en este repositorio — lo siguiente es el plan de implementación.
 
@@ -43,6 +43,21 @@ Este repositorio cubre el objetivo 1. El objetivo 2 se trabaja en un frente sepa
 4. Tus datos se respaldan y sincronizan a través de **tu propia nube** (Google Drive, OneDrive, Dropbox) o un archivo local, siempre cifrados con tu llave.
 
 No hay registro: no te pedimos correo, ni contraseña, ni nombre, ni cédula. Tu dirección dedicada es tu identidad.
+
+---
+
+## ¿Sirve fuera de Costa Rica?
+
+Técnicamente sí, y por diseño más que por casualidad. Nada del núcleo —el relay, el cifrado, la bitácora de eventos, el motor de parsers, la PWA— sabe en qué país está. El modelo de datos guarda la **moneda original de cada transacción** desde el día uno ([D11](docs/BancaLink_Decisiones.md)), así que registrar dólares, euros o quetzales no requiere ningún cambio de esquema. Un banco nuevo, en cualquier país, es un archivo YAML nuevo.
+
+Lo que sí está atado a Costa Rica hoy:
+
+- **El tipo de cambio** se consulta contra el indicador oficial del BCCR. Soportar otra fuente por país es un cambio acotado, y vive en la capa de presentación.
+- **La biblioteca de parsers** arranca con bancos costarricenses, simplemente porque es donde estamos.
+- **El objetivo 2** —empujar un estándar de banca abierta— se dirige al BCCR y la SUGEF. Otro país necesitaría su propio frente.
+- **El marco legal** que seguimos es la Ley 8968.
+
+El enfoque en Costa Rica es una decisión de estrategia, no un límite de la arquitectura. Si querés levantar los parsers de tu país, la puerta está abierta.
 
 ---
 
