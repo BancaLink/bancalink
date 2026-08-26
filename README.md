@@ -2,7 +2,7 @@
 
 [![Licencia: AGPLv3](https://img.shields.io/badge/Licencia-AGPLv3-blue.svg)](LICENSE)
 
-**Finanzas personales libres para Costa Rica. Tus correos bancarios se cifran al llegar y se interpretan solo en tu dispositivo: el servidor nunca los guarda ni los entiende.**
+**Finanzas personales libres, empezando por Costa Rica. Tus correos bancarios se cifran al llegar y se interpretan solo en tu dispositivo: el servidor nunca los guarda ni los entiende.**
 
 BancaLink lee las notificaciones que tu banco ya te envía por correo y las convierte automáticamente en un registro de gastos e ingresos. Es **libre, gratuita, de conocimiento cero y auto-hospedable**: no te pedimos acceso a tu buzón, no te creamos una cuenta, y tus transacciones descifradas nunca salen de tus dispositivos.
 
