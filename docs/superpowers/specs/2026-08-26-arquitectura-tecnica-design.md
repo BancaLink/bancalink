@@ -327,9 +327,44 @@ Un parser generado con IA por una persona debe llegar a todas las demás que usa
 
 **Descarga sin delatar al usuario.** El cliente sincroniza **el índice completo de parsers**, nunca pide uno por banco. Pedir `parsers/banco-beta.yaml` revelaría dónde tiene cuentas quien consulta — el mismo patrón de fuga que la tabla de tipos de cambio en D18, y la misma solución. La biblioteca entera pesa poco (archivos YAML de decenas de líneas), así que bajarla completa es viable indefinidamente.
 
-**Sin publicación automática.** El parser sale de un correo real y puede quedar sobreajustado con datos de quien lo generó — número de cuenta, nombre, monto embebidos en un patrón. Toda propuesta pasa por revisión antes de entrar a la biblioteca. *El mecanismo de limpieza está en discusión — ver "Preguntas abiertas" en el registro de decisiones.*
+**Sin publicación automática.** El parser sale de un correo real y puede quedar sobreajustado con datos de quien lo generó — número de cuenta, nombre, monto embebidos en un patrón. Toda propuesta pasa por la prueba de invarianza (D21, abajo) en el cliente, y por revisión humana antes de entrar a la biblioteca.
 
 **Contribuir es un acto público.** Un PR liga la identidad de GitHub de quien contribuye con el banco donde tiene cuentas. Consentimiento explícito, y una vía de envío anónimo para quien no lo quiera.
+
+### Generación de parsers (D21)
+
+**El mecanismo es el mapeador manual; la IA es un acelerador opcional.** El usuario selecciona campos sobre el correo renderizado y el cliente deriva el patrón. 100% local: sin llave, sin modelo descargado, sin red, sin de-identificación (nada sale del dispositivo), sin superficie legal nueva.
+
+```
+correo que falla
+      ↓
+[ mapeo ]  manual (siempre disponible)  ·  pre-llenado por IA (opcional)
+      ↓                                       ├── modelo local, si el dispositivo aguanta
+      ↓                                       └── llave propia del usuario (D6/D19)
+[ verificación ]  el usuario confirma los campos extraídos de SU correo
+      ↓
+[ prueba de invarianza ]  ← compuerta automática
+      ↓
+[ propuesta ]  opt-in, con vía anónima (D20)
+```
+
+**Prueba de invarianza — la compuerta que reemplaza la detección de PII.** Se muta el correo original sustituyendo todos los valores (cuenta, monto, nombre, fecha) preservando la estructura, y se corre el parser sobre la copia:
+
+- Extrae correctamente los valores nuevos → el parser es estructural. Apto para compartir.
+- Falla → memorizó datos del usuario. **No sale del dispositivo.**
+
+Determinista y sin falsos negativos silenciosos, a diferencia de un detector estadístico de entidades. Efecto secundario útil: detecta parsers frágiles, que es un defecto distinto pero igual de indeseable en la biblioteca.
+
+**Dos saneamientos independientes, en momentos distintos:**
+
+| | Cuándo aplica | Qué hace |
+|---|---|---|
+| De-identificar el correo | Solo si la inferencia es remota | Enmascara valores conservando formato (`4521-8891` → `NNNN-NNNN`) — la IA necesita la forma, no el dato |
+| Sanear el parser | **Siempre** | Prueba de invarianza antes de proponer |
+
+**Descartado: generación en el relay.** Requeriría que el relay reciba y comprenda correos bancarios, contradiciendo §2 y D2 — y ni la de-identificación en cliente lo salva, porque si esa limpieza es fiable ya corrió antes de salir del dispositivo, con lo cual el servidor solo aportaría la llamada al modelo. Un asistente en servidor, si llega a existir, será un servicio separado y explícitamente identificado, nunca el relay.
+
+**Nota de esfuerzo:** el riesgo de implementación está en la UI de verificación, no en la generación. Que una persona no técnica pueda confirmar con confianza lo que un parser extrajo es donde D4 se pone exigente.
 
 ---
 

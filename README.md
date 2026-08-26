@@ -113,13 +113,17 @@ Lo decimos abiertamente porque es información relevante para cualquiera que eva
 
 **Esta IA nunca ve datos de nadie.** Escribe código que después corre en tu dispositivo. No tiene, ni tendrá, acceso a tus correos ni a tus finanzas.
 
-### 2. IA dentro de la app (opcional, con tu propia llave)
+### 2. IA dentro de la app (opcional, y nunca obligatoria)
 
 La app **no** manda tus gastos a ningún modelo de IA. Sería caro y pésimo para la privacidad.
 
-La IA se usa en un solo caso puntual: cuando un banco cambia el formato de sus correos y la app deja de entenderlos. Ahí, **solo si vos lo activás y ponés tu propia clave de API**, se envía *un correo* al modelo para que ayude a generar la regla de lectura. A partir de ese momento, todos los correos con ese formato se procesan localmente, gratis y sin conexión.
+Hay un solo caso donde la IA podría entrar: cuando tu banco cambia el formato de sus correos y la app deja de entenderlos. Pero **la forma normal de arreglar eso no usa IA** ([D21](docs/BancaLink_Decisiones.md)): abrís el correo en la app y marcás vos mismo dónde está el monto, el comercio y la fecha. La app deduce la regla. Todo local, sin llaves, sin descargas, sin que el correo salga de tu dispositivo.
 
-Es decir: la IA se usa un puñado de veces en la vida de una instalación, no miles. Y podés no usarla nunca — la biblioteca de parsers que mantiene la comunidad cubre los formatos ya conocidos.
+La IA solo sirve para **adelantarte ese trabajo**: si la activás —con un modelo local, o con tu propia clave de API— te propone el mapeo ya hecho para que lo confirmes. Si no la tenés, no hay red, o simplemente no querés usarla, el camino manual funciona completo. **La app nunca se queda esperando una IA.**
+
+Y cuando alguien arregla el parser de su banco, ese arreglo se propone a la biblioteca compartida y le llega a todos los demás ([D20](docs/BancaLink_Decisiones.md)). Antes de salir de tu dispositivo, la app comprueba automáticamente que el parser no se haya llevado datos tuyos adentro: lo prueba contra una copia de tu correo con todos los valores cambiados, y si no sobrevive esa prueba, no se propone.
+
+Es decir: alguien usa IA un puñado de veces **por cada cambio de formato**, no cada persona cada vez. Y podés no usarla nunca.
 
 ---
 
