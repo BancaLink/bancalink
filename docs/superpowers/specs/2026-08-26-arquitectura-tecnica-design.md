@@ -297,27 +297,97 @@ La llave de API de IA (D6) es el primer secreto que la app custodia y **no puede
 
 ---
 
-## 6. Formato de parsers (D7)
+## 6. Formato de parsers (D7, D23)
 
-Un archivo YAML por formato de correo en `packages/parsers/definitions/`:
+> Diseñado contra cinco correos reales: BAC compra CRC, BAC compra USD, BAC SINPE, BCR tarjetas, Credix. Las decisiones de esta sección responden a variaciones observadas, no anticipadas.
+
+### 6.1 Normalización — la etapa que hace el trabajo
+
+Ninguna muestra trae `text/plain`: todas son `text/html` con `quoted-printable`. La codificación **parte palabras a la mitad** (`Tipo d=\ne Transacci=C3=B3n:`), así que sobre los bytes crudos no funciona ni un regex ni una búsqueda literal. La normalización es obligatoria antes de cualquier extracción.
+
+Etapas, en orden:
+
+1. Decodificar `quoted-printable` y la codificación de caracteres declarada.
+2. Descartar el contenido de `<style>` y `<script>` (si no, el CSS entra como si fuera texto).
+3. Convertir HTML a **estructura, no a texto plano.** BCR entrega los datos en una `<table>` donde el valor se liga a su encabezado **por posición de columna**; aplanar a texto destruye esa correspondencia irrecuperablemente.
+4. Normalizar espacios en blanco dentro de cada nodo.
+
+El intérprete de extracción es simple. **Esta etapa es donde está la complejidad real del paquete.**
+
+### 6.2 Tres formas, no una
+
+| Forma | Muestras | Estructura |
+|---|---|---|
+| `etiqueta_valor` | BAC ×2, Credix | Celdas o nodos adyacentes: etiqueta, luego valor |
+| `tabla` | BCR | Encabezados de columna + N filas → **N transacciones por correo** |
+| `prosa` | BAC SINPE | Valores embebidos en una oración, sin etiquetas |
+
+`tabla` obliga a que el formato soporte **repetición**: un correo puede producir varias transacciones, cada una con su ID determinista para la deduplicación de D10.
+
+### 6.3 Capa declarativa con escotilla explícita
+
+Las formas `etiqueta_valor` y `tabla` se resuelven **sin regex** — cubren 4 de las 5 muestras. `prosa` no: los delimitadores chocan con el contenido (`entre: ["un monto de ", ","]` sobre `13,139.74 Colones` devuelve `13`).
+
+Por eso el regex **no es un caso marginal**: los SINPE son de las transacciones más frecuentes del país. Pero se declara en un campo aparte, `patron`, para que se vea de un vistazo cuáles parsers lo usan y la revisión de D20 pueda concentrarse ahí.
 
 ```yaml
-id: bac-notificacion-compra
+id: bac-sinpe-recibido
 banco: BAC
 version: 1
 coincide:
-  desde: "notificaciones@bac\\.net"
-  asunto: "Notificación de transacción"
+  desde: "notificaciones@baccredomatic.cr"
+  asunto: "Notificación de Transferencia"
+
+normalizacion:  html
+formato_numero: "1,234.56"                  # declarado, nunca inferido
+monedas:        { Colones: CRC, Dólares: USD }
+direccion:      ingreso                     # ingreso | egreso | <campo>
+
 extraccion:
-  monto:    { patron: "Monto:\\s*([\\d,\\.]+)", moneda: "CRC" }
-  comercio: { patron: "Comercio:\\s*(.+)" }
-  fecha:    { patron: "Fecha:\\s*(.+)", formato: "DD/MM/YYYY" }
-  cuota:    { patron: "Cuota\\s*(\\d+)\\s*de\\s*(\\d+)", opcional: true }
+  forma: prosa
+  campos:
+    fecha:      { entre: ["el día ", " a las "], formato: "DD/MM/YYYY" }
+    referencia: { entre: ["número de referencia ", ","] }
+    monto:      { patron: "un monto de (?<valor>[\\d,\\.]+) (?<moneda>\\w+)" }   # escotilla
 ```
 
-El motor es un intérprete declarativo simple: matching por remitente y asunto, extracción por regex, mapeo y coerción de tipos. **Sin `eval` ni ejecución de código arbitrario** — los parsers los contribuye la comunidad y tienen que poder correrse con seguridad sin auditar cada uno línea por línea.
+**Tres campos que las muestras volvieron obligatorios:**
 
-**Banco piloto: BAC o Promerica.** Sus formatos son los más consistentes y documentados (son los que ya soportan las apps existentes), lo que permite validar el diseño técnico antes de enfrentar formatos más irregulares.
+- **`formato_numero`.** BAC escribe `1,190.00` (coma de miles); Credix escribe `10500,00` (**coma decimal**). Inferirlo por heurística produce errores silenciosos de factor 100 o 1000. Se declara o el parser se rechaza.
+- **`direccion`.** Una compra es egreso; un SINPE recibido es ingreso. Sin este campo la app suma donde debía restar.
+- **`monedas`.** Cinco muestras, cinco vocabularios: `CRC`, `USD`, `US DOLLAR`, `COLONES`, `Colones`.
+
+**Etiquetas variables.** BAC rotula la tarjeta con su marca — `MASTER:` en una muestra, `VISA:` en otra. `despues_de` acepta alternativas.
+
+**Descarte de transacciones no efectuadas.** BCR incluye una columna `Estado` cuyo valor era `Negada`. Registrarla inventaría un gasto que nunca ocurrió — peor que una transacción faltante (D17), porque un gasto fantasma descuadra activamente en lugar de corregirse solo. Se declara con `descartar_si: { estado: ["Negada", "Rechazada"] }`.
+
+**Robustez ante basura.** El correo de Credix trae `*|MC:SUBJECT|*`, una etiqueta de Mailchimp sin renderizar. Los correos reales llegan con defectos; el motor los tolera en vez de fallar.
+
+### 6.4 Motor y dialecto (D23)
+
+**Motor: `RegExp` nativo, ejecutado en un Web Worker con presupuesto de tiempo y `terminate()`.**
+
+El razonamiento es una restricción del lenguaje: **en JavaScript un regex no se puede interrumpir.** La ejecución es síncrona y no cede el hilo, así que "timeout por regla" no es implementable dentro del mismo hilo. Matar el Worker sí funciona, aunque esté a media ejecución.
+
+Esto contiene el ReDoS **sin agregar un solo byte al bundle** — relevante para un teléfono de gama media (D4) — y de paso evita que la interfaz se congele mientras se procesan correos. RE2 sobre WebAssembly queda como salida futura, no como costo de entrada: el modelo de amenaza lo permite porque los patrones ya pasan por validación al enviarse y por revisión humana (D20).
+
+**Dialecto: el subconjunto compatible con RE2, desde el primer parser.**
+
+| Prohibido | Motivo |
+|---|---|
+| `(?=` `(?!` `(?<=` `(?<!` | RE2 no los soporta; usarlos cierra la migración |
+| `\1`–`\9`, `\k<...>` | Incompatibles con la garantía de tiempo lineal |
+| `(x+)+`, `(x*)*`, `(a\|a)*` | La forma que explota por retroceso |
+
+Permitido: clases, anclas, alternancia, cuantificadores, grupos sin captura y **grupos con nombre** — que RE2 sí soporta y son más legibles para D7 que las referencias numéricas. Las banderas (unicode, sensibilidad a mayúsculas) se declaran en el parser; no se heredan de un default implícito.
+
+Se restringe desde ya porque es **lo único de esta sección que se pierde para siempre si se posterga**: el motor se cambia cuando se quiera, pero cuarenta parsers ya escritos con retrolectura no se migran.
+
+**Las dos protecciones son independientes y hacen falta ambas.** El dialecto no detiene el ReDoS —`(a+)+` no usa ninguna función prohibida— y el Worker no preserva la portabilidad.
+
+**Sin `eval` ni ejecución de código arbitrario.** Los parsers los contribuye la comunidad y deben poder correrse sin auditar cada uno línea por línea.
+
+**Banco piloto: BAC.** Es el único con tres formatos distintos entre las muestras (compra CRC, compra USD, SINPE), así que ejercita dos de las tres formas y la mayoría de los campos nuevos con un solo emisor.
 
 ### Distribución y contribución (D20)
 

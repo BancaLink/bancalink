@@ -148,14 +148,23 @@ Las reglas de lectura usan expresiones regulares. Ciertas expresiones, escritas 
 
 Ya nos habíamos cuidado de que un parser no pueda ejecutar código (por eso el motor no usa `eval`). Esto es un riesgo distinto, que esa protección no cubre.
 
+**Y no es un riesgo de casos raros.** Al revisar cinco correos reales confirmamos que las transferencias SINPE del BAC vienen escritas como una oración, sin etiquetas, y esas solo se pueden leer con expresiones regulares. Los SINPE son de lo más común que hay en Costa Rica: esto no es una precaución para un caso marginal, es el camino principal de un tipo de transacción central.
+
 **Lo que hacemos desde la primera versión:**
 
-- **Un límite de tiempo por regla.** Si una tarda más de lo razonable, se corta y se marca como defectuosa. La app sigue andando.
+- **Las reglas corren en un proceso aparte, con presupuesto de tiempo.** Si una se pasa, se mata el proceso. La app ni se entera y sigue andando.
+
+  *Corrección:* la primera versión de esta decisión decía "un límite de tiempo por regla", a secas. **Eso no se puede hacer.** En el navegador, una expresión regular no se puede interrumpir a mitad de camino: una vez que arranca, se queda con el hilo hasta que termina. La única forma real de cortarla es que corra en un proceso separado que sí se puede matar. Es la misma idea, pero la implementación importaba.
+
 - **Revisión automática al recibir la propuesta.** Los patrones con la forma peligrosa se rechazan antes de entrar a la biblioteca, no después.
 
-**Lo que decidimos posponer, a propósito:** existe un tipo de motor de expresiones regulares donde este problema es imposible por construcción. Es la solución de fondo, pero limita lo que una regla puede expresar y todavía no sabemos cuánta expresividad vamos a necesitar.
+- **Un dialecto restringido, desde el primer parser.** Se prohíben las funciones que los motores seguros no soportan, aunque hoy usemos el motor del navegador. No cuesta casi nada y es **lo único que se pierde para siempre si se posterga**: el motor se puede cambiar cuando queramos, pero cuarenta parsers ya escritos con funciones incompatibles no se migran solos.
 
-**Con una fecha de vencimiento, eso sí:** hay que decidirlo **antes de que la biblioteca crezca**. Migrar diez parsers es una tarde; migrar cuarenta escritos por gente distinta, con formatos que ya nadie tiene a mano para volver a probar, es un proyecto. Esta es de esas decisiones que se vuelven caras solas si se dejan quietas.
+  *Corrección:* esto estaba pospuesto en la primera versión de D23. Estaba mal. Un dialecto no se elige el día que uno se sienta a decidirlo — **se elige solo, por omisión, el día que se escribe la primera regla.**
+
+**Lo que sí queda pospuesto:** cambiar al motor seguro de verdad, el que hace el problema imposible por construcción. Pesaría cientos de kilobytes en el teléfono de alguien que quizás lo bajó con datos móviles, y el proceso aparte ya contiene el riesgo mientras tanto. Como los parsers ya se escriben en el dialecto compatible, ese cambio queda disponible el día que haga falta.
+
+**Ojo con no confundirlas:** el dialecto restringido **no** evita el problema —hay patrones peligrosos que no usan ninguna función prohibida— y el proceso aparte **no** garantiza que podamos cambiar de motor. Son dos protecciones distintas y hacen falta las dos.
 
 ### **D21 — El parser lo armás vos; la IA solo te adelanta el trabajo (26 Agosto 2026\)**
 
