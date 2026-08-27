@@ -299,7 +299,7 @@ La llave de API de IA (D6) es el primer secreto que la app custodia y **no puede
 
 ## 6. Formato de parsers (D7, D23)
 
-> Diseñado contra cinco correos reales: BAC compra CRC, BAC compra USD, BAC SINPE, BCR tarjetas, Credix. Las decisiones de esta sección responden a variaciones observadas, no anticipadas.
+> Diseñado contra seis correos reales: BAC compra CRC, BAC compra USD, BAC SINPE, BAC pago de servicios, BCR tarjetas, Credix. Las decisiones de esta sección responden a variaciones observadas, no anticipadas — cada tanda de muestras corrigió algo que la anterior daba por cerrado.
 
 ### 6.1 Normalización — la etapa que hace el trabajo
 
@@ -318,11 +318,13 @@ El intérprete de extracción es simple. **Esta etapa es donde está la compleji
 
 | Forma | Muestras | Estructura |
 |---|---|---|
-| `etiqueta_valor` | BAC ×2, Credix | Celdas o nodos adyacentes: etiqueta, luego valor |
+| `etiqueta_valor` | BAC compra ×2, BAC pago, Credix | Celdas o nodos adyacentes: etiqueta, luego valor |
 | `tabla` | BCR | Encabezados de columna + N filas → **N transacciones por correo** |
-| `prosa` | BAC SINPE | Valores embebidos en una oración, sin etiquetas |
+| `prosa` | BAC SINPE, BAC pago (proveedor) | Valores embebidos en una oración, sin etiquetas |
 
 `tabla` obliga a que el formato soporte **repetición**: un correo puede producir varias transacciones, cada una con su ID determinista para la deduplicación de D10.
+
+**Las formas no son excluyentes por correo.** El pago de servicios del BAC aparece en dos filas de esta tabla porque es lo uno y lo otro a la vez. Por eso `forma` se declara por campo (§6.3, regla 1) y no por parser.
 
 ### 6.3 Capa declarativa con escotilla explícita
 
@@ -331,25 +333,45 @@ Las formas `etiqueta_valor` y `tabla` se resuelven **sin regex** — cubren 4 de
 Por eso el regex **no es un caso marginal**: los SINPE son de las transacciones más frecuentes del país. Pero se declara en un campo aparte, `patron`, para que se vea de un vistazo cuáles parsers lo usan y la revisión de D20 pueda concentrarse ahí.
 
 ```yaml
-id: bac-sinpe-recibido
+id: bac-pago-servicios
 banco: BAC
 version: 1
 coincide:
-  desde: "notificaciones@baccredomatic.cr"
-  asunto: "Notificación de Transferencia"
+  desde:  ["alerta@baccredomatic.com",           # BAC usa TRES remitentes
+           "notificacion@baccredomatic.cr",      # y DOS dominios (.com y .cr)
+           "notificaciones@baccredomatic.cr"]
+  asunto: "Notificación de pago"
 
 normalizacion:  html
 formato_numero: "1,234.56"                  # declarado, nunca inferido
-monedas:        { Colones: CRC, Dólares: USD }
-direccion:      ingreso                     # ingreso | egreso | <campo>
+monedas:        { CRC: CRC, Colones: CRC, USD: USD, Dólares: USD }
+direccion:      egreso                      # ingreso | egreso | <campo>
 
 extraccion:
-  forma: prosa
+  forma: etiqueta_valor                     # por defecto para este parser
   campos:
-    fecha:      { entre: ["el día ", " a las "], formato: "DD/MM/YYYY" }
-    referencia: { entre: ["número de referencia ", ","] }
-    monto:      { patron: "un monto de (?<valor>[\\d,\\.]+) (?<moneda>\\w+)" }   # escotilla
+    monto:    { despues_de: "Monto:", tipo: monto, moneda_al: final }
+    fecha:    { despues_de: "Fecha de Pago:",     formato: "YYYY-MM-DD HH:mm:ss.SSS" }
+    vence:    { despues_de: "Fecha Vencimiento:", formato: "YYYYMMDD" }
+    comercio: { forma: prosa,                     # ← anula la forma del parser
+                entre: ["pago de servicio de ", " desde"] }
 ```
+
+**Cinco reglas que las muestras impusieron sobre este esquema:**
+
+1. **`forma` se declara por campo, con un valor por defecto en el parser.** El comprobante de pago de servicios es etiqueta-valor en casi todo, pero el proveedor —`JASEC`, el equivalente al comercio y el campo más importante— solo existe dentro de una oración: `pago de servicio de <span>JASEC</span> desde <span>Banca Móvil</span>`. **Un mismo correo mezcla formas**, así que no puede haber una sola por parser.
+
+2. **`desde` acepta varias direcciones.** BAC emite desde `notificacion@`, `notificaciones@` y `alerta@`, **y desde dos dominios distintos** (`.cr` y `.com`). Es una trampa silenciosa: quien escriba `@baccredomatic\.cr` no va a fallar con error, simplemente nunca va a procesar los pagos de servicios.
+
+3. **La posición de la moneda se declara** (`moneda_al: inicio | final`). Dentro del mismo banco conviven `CRC 1,190.00` en las compras y `13,333.00 CRC` en los pagos.
+
+4. **El formato de fecha es por campo, no por parser.** Este correo trae dos a la vez: `2026-08-16 15:10:16.058` y `20260825`.
+
+5. **El parser extrae solo campos del modelo de datos (§4); lo demás se descarta.** Este correo trae `Alias`, `Código Pueblo`, `Número Abonado` y otros del dominio "servicios públicos". No entran: quien clasifica es la persona, con las categorías y etiquetas que ya existen en §4 —"electricidad", "casa Guanacaste", "apartamento"— y la app a lo sumo sugiere.
+
+   *Lo que se cede:* con dos servicios JASEC en propiedades distintas, ambos correos dicen `JASEC` y lo único que los separaba era `Número Abonado`. La app no podrá sugerir la etiqueta correcta; hay que ponerla a mano.
+
+   *Por qué se acepta igual:* **es reversible.** A diferencia del formato numérico o del dialecto de regex —donde equivocarse deja daño permanente— acá el dato sigue llegando en cada correo. Si la sugerencia automática llega a valer la pena, el parser agrega el campo, y el historial viejo se recupera reenviando correos (D9).
 
 **Tres campos que las muestras volvieron obligatorios:**
 
