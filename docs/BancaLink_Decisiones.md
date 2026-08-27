@@ -19,7 +19,7 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 ## **Índice rápido de decisiones**
 
 * **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[D22\] Los parsers son datos, no código, \[Extra\] Figura legal.  
-* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas.  
+* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas, \[D25\] Versiones de parsers.  
 * **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio, \[D24\] Tu período y los dos presupuestos.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
@@ -166,6 +166,32 @@ Ya nos habíamos cuidado de que un parser no pueda ejecutar código (por eso el 
 
 **Ojo con no confundirlas:** el dialecto restringido **no** evita el problema —hay patrones peligrosos que no usan ninguna función prohibida— y el proceso aparte **no** garantiza que podamos cambiar de motor. Son dos protecciones distintas y hacen falta las dos.
 
+### **D25 — Versiones de parsers: qué se puede correr y en qué confiar (27 Agosto 2026\)**
+
+*Decisión nueva, surgida al preguntarnos si los parsers necesitan compatibilidad hacia atrás.*
+
+Los parsers viajan de una persona a todas (D20), y las apps de la gente no están todas en la misma versión. Eso plantea dos preguntas distintas que conviene no mezclar.
+
+**Primera: ¿puede esta app correr este parser?**
+
+Cada parser declara el esquema mínimo que necesita. Si la app no llega a esa versión, **se salta ese parser completo** en vez de intentarlo a medias.
+
+Parece exagerado —¿por qué no ignorar lo que no entiende y seguir?— pero es justo lo que no se puede hacer. Si una versión nueva del formato agrega el dato de si la moneda va antes o después del monto, una app vieja que lo ignore **no falla: lee el monto al revés** y guarda una transacción equivocada sin avisar. Un campo que no se entiende puede cambiar el significado de todo lo demás. Preferimos perder ese banco hasta que la persona actualice.
+
+*(Ojo con no confundir esto con otra cosa que también se llama "compatibilidad hacia atrás": cuando un banco cambia su formato, el parser viejo **no se borra**. Sigue en la biblioteca para leer los correos viejos, y la app decide cuál aplicar según el correo.)*
+
+**Segunda: ¿este parser es confiable?**
+
+Acá chocamos con D12: no medimos nada, así que **no tenemos forma de saber cuánta gente usa un parser ni si le funciona.** Poner una etiqueta que diga "estable" sería inventarnos una afirmación que no podemos sostener.
+
+Pero D12 también dice dónde sí hay evidencia: la actividad pública en GitHub. Eso es verificable por cualquiera, sin espiar a nadie. Así que en vez de etiquetas que alguien asigna a dedo, mostramos hechos comprobables: *"lleva ocho meses sin correcciones"*, *"se aceptó hace tres semanas"*, *"propuesta anónima que nadie más ha confirmado"*.
+
+**Tercera cosa, que protege más que cualquier etiqueta:** la primera vez que un parser nuevo lee un correo tuyo, **la app te muestra qué entendió y te pide confirmación** — el mismo mecanismo con que verificás un parser que hiciste vos (D21). Vos tenés el correo enfrente y sabés si dice ₡13.333 o ₡1.333.300.
+
+**Y si no te convence, podés volver a la versión anterior.** La biblioteca conserva las versiones viejas, y tu elección se sincroniza con tus otros dispositivos.
+
+**Con una limitación que hay que decir de frente:** volver a una versión anterior afecta los **correos que lleguen de ahí en adelante**. Las transacciones que ya se guardaron mal se corrigen a mano, como cualquier otra edición. Volver a procesar lo viejo requeriría que la app hubiera guardado el correo original, y **todavía no está decidido cuánto tiempo se guardan** — queda como pregunta abierta.
+
 ### **D21 — El parser lo armás vos; la IA solo te adelanta el trabajo (26 Agosto 2026\)**
 
 *Decisión nueva, surgida al discutir cómo se genera un parser sin filtrar datos personales.*
@@ -295,6 +321,16 @@ Quedan dos notas del análisis que siguen siendo válidas para cuando se impleme
 
 - **Una biblioteca de reconocimiento de entidades (tipo spaCy) puede servir como malla extra en CI**, sobre todo para nombres de persona, que no tienen formato fijo como una cédula o un número de cuenta. Pero es probabilística y sus modelos en español están entrenados con noticias, así que sobre correos bancarios ticos rendiría regular. Red de seguridad, nunca la garantía.
 - **Ojo con meter otro lenguaje al monorepo.** spaCy es Python y todo el stack es TypeScript. Como herramienta de mantenedor en CI es aceptable; como código que se distribuye, contradice la arquitectura.
+
+### **Cuánto tiempo se guarda el correo original (abierta desde el 27 Agosto 2026\)**
+
+Surgió al escribir D25. Hoy no está decidido si la app conserva el correo después de haberlo interpretado, y de eso dependen tres cosas que ya prometimos o vamos a querer:
+
+- **Volver a procesar con otro parser.** D25 deja volver a una versión anterior, pero eso solo arregla los correos futuros. Sin el correo original, lo ya guardado se corrige a mano.
+- **El mapeador manual (D21) necesita el correo.** Para que alguien marque dónde está el monto, el correo tiene que seguir ahí. Al menos los que **no** se pudieron interpretar hay que guardarlos, o la función no existe.
+- **Guardar correos bancarios en el dispositivo es un riesgo en sí mismo.** Son los datos más sensibles que toca el sistema, y hoy la app los descarta apenas los convierte en transacciones.
+
+Las tres tiran para lados distintos: la primera y la segunda piden guardar, la tercera pide botar. Probablemente la respuesta sea "los no interpretados se guardan hasta que se arreglen; los interpretados se botan o duran poco", pero hay que decidirlo con cuidado y escribir por qué.
 
 *Nota de equipo: Este documento está vivo. Si en el futuro cambiamos de opinión en alguna de estas decisiones, no borraremos el historial. Simplemente agregaremos la fecha, qué decidimos cambiar y por qué, para mantener nuestra historia transparente.*
 

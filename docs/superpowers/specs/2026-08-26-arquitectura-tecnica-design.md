@@ -365,7 +365,8 @@ Por eso el regex **no es un caso marginal**: los SINPE son de las transacciones 
 ```yaml
 id: bac-pago-servicios
 banco: BAC
-version: 1
+version: 1              # revisión de ESTE parser — la biblioteca conserva las anteriores (D25)
+formatoMinimo: 1        # esquema mínimo requerido; si la app no llega, se salta el parser entero
 coincide:
   desde:  ["alerta@baccredomatic.com",           # BAC usa TRES remitentes
            "notificacion@baccredomatic.cr",      # y DOS dominios (.com y .cr)
@@ -408,6 +409,10 @@ extraccion:
 - **`formato_numero`.** BAC escribe `1,190.00` (coma de miles); Credix escribe `10500,00` (**coma decimal**). Inferirlo por heurística produce errores silenciosos de factor 100 o 1000. Se declara o el parser se rechaza.
 - **`direccion`.** Una compra es egreso; un SINPE recibido es ingreso. Sin este campo la app suma donde debía restar.
 - **`monedas`.** Cinco muestras, cinco vocabularios: `CRC`, `USD`, `US DOLLAR`, `COLONES`, `Colones`.
+
+**Versiones y compatibilidad (D25).** `version` es la revisión del parser; `formatoMinimo` es el esquema que necesita para correr bien. Si la app no alcanza ese mínimo **descarta el parser entero** — nunca lo ejecuta parcialmente. Ignorar un campo desconocido no es seguro: si el formato 2 introdujo `moneda_al` y una app de formato 1 lo omite, no falla, **invierte el monto en silencio**.
+
+Contrasta deliberadamente con el manejo de eventos desconocidos en la bitácora, que se *guardan sin entender* porque son datos del usuario e irrecuperables. Un parser desconocido se descarta: se vuelve a bajar del índice cuando la app se actualice.
 
 **Etiquetas variables.** BAC rotula la tarjeta con su marca — `MASTER:` en una muestra, `VISA:` en otra. `despues_de` acepta alternativas.
 
