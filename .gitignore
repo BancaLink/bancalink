@@ -1,0 +1,5 @@
+# Correos de muestra para desarrollo de parsers.
+# NUNCA se suben: son correos bancarios reales con nombre, IBAN, últimos
+# dígitos de tarjeta, montos y firmas DKIM que los hacen verificables.
+sample/
+*.eml
