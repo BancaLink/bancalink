@@ -18,8 +18,8 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 
 ## **Índice rápido de decisiones**
 
-* **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[Extra\] Figura legal.  
-* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser.  
+* **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[D22\] Los parsers son datos, no código, \[Extra\] Figura legal.  
+* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas.  
 * **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
@@ -37,6 +37,20 @@ En Costa Rica, los derechos de marca se ganan registrando, no solo usando. Sin e
 ### **D14 — Preferimos un DCO en lugar de un CLA**
 
 Cuando alguien aporte código, usaremos un "Developer Certificate of Origin" (una simple firma en sus commits) en lugar de hacerles firmar un contrato legal extenso (CLA). Un CLA nos permitiría cambiar la licencia del proyecto a futuro, pero *no queremos* tener ese poder. El hecho de que sea casi imposible cambiar la licencia sin contactar a cada contribuyente es una protección estructural para que BancaLink nunca deje de ser libre.
+
+### **D22 — Un parser es un dato, no un aporte de código (26 Agosto 2026\)**
+
+*Decisión nueva, surgida al preguntarnos cómo contribuye alguien que no tiene cuenta de GitHub.*
+
+D14 exige firma DCO para los aportes de código. **Los parsers quedan fuera de esa exigencia**, y eso es lo que hace posible la vía anónima que D20 promete.
+
+El razonamiento: un parser describe **hechos sobre el formato de correo de un banco** —"el monto viene después de la palabra Monto:"— no expresión original de quien lo escribe. Dos personas que describan el mismo correo van a escribir prácticamente lo mismo, porque no están creando nada: están anotando cómo es un documento ajeno. Si no hay obra que licenciar, no hay firma que recolectar.
+
+Esto **no cambia D14 para el código de la app**, que sigue firmándose. Solo aclara que la biblioteca de parsers se rige distinto.
+
+Sin esta distinción, contribuir exigiría una identidad verificable, y eso dejaría por fuera a la mayoría de las personas para las que hicimos la app (D4): doña Catalina, que le enseñó a la app a leer los correos de MUCAP, no va a abrir una cuenta de GitHub para que su trabajo le sirva a alguien más.
+
+**Falta confirmarlo con un abogado**, y lo sumamos a las consultas pendientes. Es una premisa cargada: si no se sostiene, hay que rediseñar la contribución anónima entera, no parchearla.
 
 ### **Sobre crear una fundación o asociación**
 
@@ -122,7 +136,26 @@ Tres condiciones, porque distribuirle un archivo a todo el mundo no es cosa meno
 - **Bajar parsers no puede delatar dónde banqueás.** Si la app pidiera *"dame el parser del Banco Beta"*, esa consulta sola diría en qué banco tenés plata. Se baja **el índice completo**, no el de un banco en particular — el mismo criterio que usamos con la tabla de tipos de cambio en D18.
 - **Contribuir es público, y hay que decirlo.** Proponer un arreglo deja tu cuenta de GitHub ligada a tu banco. Tiene que ser una decisión consciente, con opción de enviarlo de forma anónima para quien no quiera eso.
 
-*(Cómo se limpia el parser de datos personales antes de proponerlo se resolvió en D21.)*
+*(Cómo se limpia el parser de datos personales antes de proponerlo se resolvió en D21. Quién puede contribuir sin cuenta de GitHub, en D22.)*
+
+### **D23 — Una regla mal escrita puede congelarle la app a todo el mundo (26 Agosto 2026\)**
+
+*Decisión nueva, surgida al diseñar la contribución anónima.*
+
+Los parsers viajan de una persona a todas las demás (D20). Eso los convierte en una cadena de suministro, y hay un riesgo que hasta ahora no habíamos visto.
+
+Las reglas de lectura usan expresiones regulares. Ciertas expresiones, escritas de cierta forma, pueden tardar un tiempo desproporcionado en analizar algunos textos — no minutos: *años*. Si una regla así entra a la biblioteca, **le congela la app a toda persona que reciba un correo de ese banco.** No hace falta mala intención: se escriben sin querer.
+
+Ya nos habíamos cuidado de que un parser no pueda ejecutar código (por eso el motor no usa `eval`). Esto es un riesgo distinto, que esa protección no cubre.
+
+**Lo que hacemos desde la primera versión:**
+
+- **Un límite de tiempo por regla.** Si una tarda más de lo razonable, se corta y se marca como defectuosa. La app sigue andando.
+- **Revisión automática al recibir la propuesta.** Los patrones con la forma peligrosa se rechazan antes de entrar a la biblioteca, no después.
+
+**Lo que decidimos posponer, a propósito:** existe un tipo de motor de expresiones regulares donde este problema es imposible por construcción. Es la solución de fondo, pero limita lo que una regla puede expresar y todavía no sabemos cuánta expresividad vamos a necesitar.
+
+**Con una fecha de vencimiento, eso sí:** hay que decidirlo **antes de que la biblioteca crezca**. Migrar diez parsers es una tarde; migrar cuarenta escritos por gente distinta, con formatos que ya nadie tiene a mano para volver a probar, es un proyecto. Esta es de esas decisiones que se vuelven caras solas si se dejan quietas.
 
 ### **D21 — El parser lo armás vos; la IA solo te adelanta el trabajo (26 Agosto 2026\)**
 

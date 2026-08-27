@@ -27,7 +27,7 @@ Este documento cubre el segundo.
 
 **No incluye:** el mapeador manual (D21), la prueba de invarianza (D21), la distribución del índice de parsers (D20). Este diseño los consume, no los define.
 
-**Premisa legal (nueva, requiere confirmación):** un parser se trata como **dato, no como aporte de código**, y por lo tanto queda exento del DCO que D14 exige. El razonamiento: un parser describe hechos sobre el formato de correo de un tercero ("el monto va después de `Monto:`"), no expresión original. Sin obra que licenciar, no hay firma que recolectar, y la contribución anónima es viable. **Esta premisa sostiene todo el diseño** — si un abogado la descarta, hay que rehacerlo. Se suma a las consultas legales pendientes del registro de decisiones.
+**Premisa legal (D22, requiere confirmación):** un parser se trata como **dato, no como aporte de código**, y por lo tanto queda exento del DCO que D14 exige. El razonamiento: un parser describe hechos sobre el formato de correo de un tercero ("el monto va después de `Monto:`"), no expresión original. Sin obra que licenciar, no hay firma que recolectar, y la contribución anónima es viable. **Esta premisa sostiene todo el diseño** — si un abogado la descarta, hay que rehacerlo. Se suma a las consultas legales pendientes del registro de decisiones.
 
 ## 3. Flujo de Catalina
 
@@ -123,7 +123,7 @@ Tres mitigaciones, de menor a mayor solidez:
 | Validación de complejidad al aceptar | Medio | Rechaza antes de distribuir |
 | Dialecto sin backtracking (estilo RE2) | Alto | Elimina la clase de problema |
 
-**Recomendación:** timeout desde v1, validación de complejidad en el endpoint, y el dialecto restringido registrado como decisión pendiente. Cambiar de dialecto con cuarenta parsers ya escritos es caro; decidirlo ahora es barato.
+**Resuelto en D23:** timeout desde v1 y validación de complejidad en el endpoint. El dialecto restringido se pospone deliberadamente, con vencimiento explícito: hay que decidirlo **antes de que la biblioteca crezca**, porque migrar cuarenta parsers escritos por gente distinta —con formatos que ya nadie tiene a mano para reprobar— deja de ser una tarde y pasa a ser un proyecto.
 
 ## 8. Errores y casos borde
 
@@ -152,10 +152,7 @@ Las dos filas en negrita son el corazón de la promesa que se le hace a Catalina
 
 **El "relay ciego" hace cuatro cosas.** Recibe SMTP, entrega blobs, sirve la tabla de tipos de cambio (D18), y ahora recibe propuestas. Cada una se defiende sola; la etiqueta ya no las describe. Corresponde actualizar el README y el spec de arquitectura con la misma franqueza aplicada al resto.
 
-**Decisiones que faltan escribir:**
-
-- Parsers exentos de DCO — aclara o enmienda D14, y requiere confirmación legal.
-- Dialecto de regex restringido — decidir antes de acumular parsers.
+**Decisiones ya escritas a partir de este diseño:** D22 (parsers exentos de DCO, pendiente de confirmación legal) y D23 (seguridad de las reglas: timeout y validación desde v1, dialecto restringido pospuesto con fecha de vencimiento).
 
 ## 11. Impacto en documentos existentes
 
