@@ -20,7 +20,7 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 
 * **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[D22\] Los parsers son datos, no código, \[Extra\] Figura legal.  
 * **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas.  
-* **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio.
+* **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio, \[D24\] Tu período y los dos presupuestos.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
 
@@ -251,6 +251,27 @@ Esto le agrega una función al relay, así que vale ser explícitos sobre por qu
 **Siempre tiene que poder funcionar sin red y sin proveedor.** Podés escribir el tipo de cambio a mano, y esa opción no se quita nunca. Si la tabla está vieja o no se pudo bajar, la app no se bloquea: muestra los montos en su moneda original y avisa que la conversión está desactualizada — el mismo criterio que aplicamos cuando el relay se cae.
 
 **Sobre qué tipo de cambio se usa:** para lo que estás viendo en pantalla, el más reciente. Pero cuando guardamos un reporte o una foto de un saldo, **se guarda también el tipo de cambio que se usó**. Si no, un reporte que generaste en marzo cambiaría de cifras en agosto sin que nadie lo tocara, y un reporte que se mueve solo no sirve para nada.
+
+### **D24 — Tu período lo definís vos, y hay dos tipos de presupuesto (27 Agosto 2026\)**
+
+*Decisión nueva, surgida al hablar de cuántos datos cargar en el dispositivo.*
+
+**El mes calendario no sirve para todo el mundo.** En Costa Rica mucha gente cobra quincenal, y quien cobra el 25 vive del 25 al 24, no de agosto a agosto. Si la app hornea "mes calendario", le está imponiendo a la persona un ritmo que no es el suyo — justo lo que D4 nos prohíbe.
+
+Así que **el ciclo lo configura la persona**: mes calendario, del día que sea al día que sea, quincenal con los dos días que ella escoja, o cada tantos días desde una fecha (para quien cobra cada catorce días, que corre entre meses). No fijamos el 15 y el 30 porque no es igual para todos.
+
+Esto se define ahora aunque los presupuestos lleguen después: si las proyecciones nacen asumiendo mes calendario, cambiarlas más adelante toca todo.
+
+**Y hay dos tipos de presupuesto, no uno.** Al hablarlo apareció uno que no habíamos contemplado:
+
+- **El recurrente:** "₡200.000 al mes en comida". Es una categoría, sobre un ciclo, con un monto. Es el que la arquitectura ya había previsto.
+- **El de evento:** un viaje, las compras de fin de año, remodelar el baño. Tiene nombre y meta, empieza y termina, y **atraviesa los ciclos** en vez de competir con ellos.
+
+**El de evento no necesita nada nuevo: es una etiqueta con una meta.** Las etiquetas ya son aditivas y transversales, y uno de sus ejemplos ya era "vacaciones 2026". Un almuerzo en Guanacaste queda en la categoría "Comida" **y** con la etiqueta "Viaje Guanacaste" — cuenta una sola vez en tus gastos del mes, y aparte suma contra la meta del viaje.
+
+Que la categoría siga siendo exclusiva y la etiqueta aditiva es lo que hace que esto funcione sin contar nada dos veces.
+
+**Qué se construye ahora:** solo el ciclo configurable, porque las proyecciones lo necesitan. Los presupuestos siguen fuera de la primera versión; lo que dejamos escrito desde ya son los tipos, siguiendo D5 — en una app donde cada dispositivo migra su propio esquema, equivocarse ahí sale caro para siempre.
 
 ## **4\. Nuestro compromiso legal (Ley 8968\)**
 

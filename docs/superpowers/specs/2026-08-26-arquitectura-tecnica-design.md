@@ -221,13 +221,32 @@ Dos consecuencias del modelo, ambas deseables:
 ### Eventos esqueleto
 
 ```ts
-PresupuestoCreado   { id, categoriaId, periodo: "mensual",
+// Ciclo personal (D24) — el ÚNICO de este bloque que se implementa en v1,
+// porque las proyecciones de saldo y agrupación dependen de él.
+CicloConfigurado =
+  | { tipo: "mensual";     diaInicio: number }           // 1 = calendario · 25 = del 25 al 24
+  | { tipo: "quincenal";   dias: [number, number] }      // [15, 30] · [1, 16] · lo que la persona use
+  | { tipo: "cada-n-dias"; dias: number; ancla: string } // pago cada 14 días; corre entre meses
+
+// Presupuesto recurrente: categoría × ciclo × monto
+PresupuestoCreado   { id, categoriaId, ciclo: CicloConfigurado,
                       montoLimite: { valor, moneda },
                       origen: "sugerido" | "manual", vigenteDesde }
 PresupuestoAjustado { presupuestoId, montoLimite, timestamp }
+
+// Presupuesto de evento (D24): NO es una entidad nueva — es una etiqueta con meta
+MetaEtiquetaCreada  { etiqueta: string, montoMeta: { valor, moneda },
+                      desde?: string, hasta?: string }
+
 MetaAhorroCreada
 GastoCompartido
 ```
+
+**Dos tipos de presupuesto, no uno (D24).** El recurrente —"₡200.000 al mes en comida"— es categoría sobre ciclo. El de evento —un viaje, las compras de fin de año— tiene nombre y meta, empieza y termina, y **atraviesa los ciclos** en lugar de competir con ellos.
+
+El de evento no requiere entidad nueva: **es una etiqueta con meta**. Las etiquetas ya son aditivas y transversales, y su ejemplo canónico ya era "vacaciones 2026". Un almuerzo en Guanacaste queda en categoría `Comida` **y** con etiqueta `Viaje Guanacaste`: cuenta una sola vez en el gasto del ciclo, y aparte suma contra la meta del viaje. Que la categoría sea exclusiva y la etiqueta aditiva es exactamente lo que evita el doble conteo.
+
+**El ciclo no puede ser mes calendario horneado.** Quien cobra el 25 vive del 25 al 24, y el pago quincenal es común en Costa Rica sin que los días sean siempre 15 y 30. Imponer el mes calendario le impone a la persona un ritmo ajeno, contra D4. Se implementa en v1 aunque los presupuestos no: las proyecciones de saldo y agrupación lo necesitan, y meterlo después obligaría a tocarlas todas.
 
 "Gastado vs. presupuestado" no es un evento: es una proyección sobre transacciones + categorías + presupuesto vigente. El flujo guiado previsto —*entender los gastos primero, sugerir un presupuesto después, acompañar el ajuste*— calcularía promedio o mediana por categoría sobre el log ya materializado: 100% local, sin IA y sin servidor. Está diseñado pero **diferido fuera de v1**, no descartado.
 
