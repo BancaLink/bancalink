@@ -145,7 +145,17 @@ La razón de definir el modelo de datos completo desde el inicio es que en una a
 
 ## Contribuir
 
-Todavía estamos en la etapa previa a la implementación — no hay código de aplicación que aportar, pero sí hay diseño para discutir. Si el proyecto te interesa, empezá por leer [`docs/BancaLink_Decisiones.md`](docs/BancaLink_Decisiones.md) y contanos qué pensás en las [Discussions](../../discussions): dudas, objeciones al diseño, interés en un frente específico (backend, cifrado, parsers bancarios, legal, PWA/mobile) — todo sirve en esta etapa.
+Todavía estamos en la etapa previa a la implementación — no hay código de aplicación que aportar, pero sí hay diseño para discutir.
+
+**Por dónde empezar:**
+
+| | Qué es |
+|---|---|
+| [**Diagramas de arquitectura**](docs/diagramas/) | La vista de conjunto, en cinco diagramas. El camino más rápido para entender cómo encaja todo |
+| [Registro de decisiones](docs/BancaLink_Decisiones.md) | Qué decidimos y por qué. Es la fuente de verdad |
+| [Diseños técnicos](docs/superpowers/specs/) | El detalle de cómo se construye |
+
+Después contanos qué pensás en las [Discussions](../../discussions): dudas, objeciones al diseño, interés en un frente específico (backend, cifrado, parsers bancarios, legal, PWA/mobile) — todo sirve en esta etapa. Las objeciones sirven especialmente: varias decisiones cambiaron al ponerlas a prueba contra correos bancarios reales.
 
 Cuando arranque la implementación, las guías de contribución van a empezar por el formato de los parsers bancarios — pensado para que alguien sin experiencia programando pueda arreglar el correo de su banco.
 
