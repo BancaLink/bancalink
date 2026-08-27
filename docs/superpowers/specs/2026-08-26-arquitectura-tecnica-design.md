@@ -162,7 +162,18 @@ TransaccionRegistrada {
 }
 ```
 
-Otros eventos core: `TransaccionCategorizada { transaccionId, categoriaId, timestamp, origen: "auto"|"manual" }`, `TransaccionEditada`, `TransaccionEliminada` (siempre evento nuevo, nunca mutación del original) y `CategoriaCreada`.
+Otros eventos core: `TransaccionCategorizada { transaccionId, categoriaId, timestamp, origen: "auto"|"manual" }`, `TransaccionEditada`, `TransaccionEliminada`, `TransaccionRestaurada` (siempre evento nuevo, nunca mutación del original) y `CategoriaCreada`.
+
+**Borrar es reversible, y eso obliga a una papelera.** `TransaccionEliminada` saca la transacción de toda proyección —saldos, presupuestos, reportes— pero el evento original permanece en el log. `TransaccionRestaurada` la revive. La proyección resuelve el estado tomando el más reciente por `(ts, dispositivo)`, lo que converge entre dispositivos sin coordinación: ambos ven los mismos eventos y eligen el mismo último.
+
+Dos consecuencias que hay que respetar en la interfaz:
+
+- **Hace falta una vista de movimientos borrados.** Sin ella la restauración es inalcanzable, porque no hay dónde tocar. Es una vista filtrada del log, no un almacén aparte.
+- **Es permanente, no se purga a los 30 días.** Purgar sería borrado real y la siguiente fusión lo resucitaría desde el otro dispositivo (ver §5, la fusión no distingue "borrado" de "no visto"). Sale barata: son eventos que ya están.
+
+**Reenviar el correo no restaura nada:** la huella determinística lo deduplica. Es lo correcto —evita que un reenvío accidental duplique gastos— pero convierte a la papelera en el único camino de vuelta.
+
+**Las ediciones se fusionan por campo, no por evento completo.** Si un dispositivo cambia la categoría y otro el comercio, sobreviven ambos cambios; con "último evento gana" se perdería uno en silencio. `TransaccionEditada` ya guarda solo los campos modificados, así que no cuesta nada.
 
 ### Deduplicación
 
