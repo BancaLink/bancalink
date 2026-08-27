@@ -179,7 +179,7 @@ Dos consecuencias que hay que respetar en la interfaz:
 
 El `id` de una transacción es su huella:
 
-- **Origen correo:** hash del `Message-ID`, o del cuerpo normalizado si no existe.
+- **Origen correo:** hash de `(Message-ID, índice de fila)`, o del cuerpo normalizado si no hay `Message-ID`. El índice es obligatorio porque un correo puede traer varias transacciones (la tabla del BCR): sin él, todas compartirían huella y solo sobreviviría la primera. Se usa el índice y no el contenido extraído porque el correo es inmutable —el orden de sus filas nunca cambia— mientras que una corrección de parser sí cambia el contenido, y eso reintroduciría la transacción como duplicada.
 - **Origen importación:** hash de `(cuentaId, fecha, monto, comercio normalizado)`.
 - **Origen manual:** UUID.
 
