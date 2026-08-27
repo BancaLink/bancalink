@@ -303,6 +303,34 @@ v1 sube el log fusionado completo en cada sincronización, sin deltas — YAGNI 
 
 **Fusión entre dispositivos:** descargar → descifrar → unión de conjuntos descartando IDs duplicados → re-cifrar → subir. Como los IDs son deterministas o UUIDs únicos, la unión siempre converge: no hay conflictos reales que resolver, ni "último en escribir gana", ni intervención del usuario.
 
+### Retención de correos (D26)
+
+El correo crudo **se descarta apenas se normaliza**. Lo que persiste es el resultado de la normalización:
+
+```ts
+CorreoRetenido {
+  id;                     // misma huella que deduplica la transacción (D10)
+  bloques: Bloque[];      // salida del normalizador de SP1
+  coincidencia: { desde, asunto, fecha };   // sin esto no se puede re-decidir el parser
+  estado: "sin-parser" | "interpretado" | "rechazado";
+  expiraEn?: string;
+}
+```
+
+Los bloques bastan para las dos necesidades: **la extracción opera sobre bloques**, así que reprocesar con otra versión de parser (D25) no requiere el correo; y el mapeador manual (D21) consume exactamente esta estructura — es lo que devuelve `sin-parser`.
+
+Lo descartado es lo de mayor riesgo y mayor peso: encabezados e identificadores del proveedor, **firmas DKIM** —que hacen el correo verificable ante terceros—, enlaces con token, pixeles de rastreo, e imágenes en base64, que son ~90% del tamaño (los `.eml` de muestra pesan 11–110 KB; su HTML útil, 2.7–10 KB).
+
+| Estado | Retención |
+|---|---|
+| `sin-parser` | Hasta resolverse — es trabajo pendiente; borrarlo elimina la posibilidad de arreglarlo |
+| `interpretado` | ~30 días, configurable hasta 0 |
+| `rechazado` en la confirmación de D25 | Hasta resolverse |
+
+**No entra al respaldo (D8).** Mantiene el blob liviano y deja lo más sensible que el sistema deriva fuera de almacenamiento de terceros. Costo: reinstalar pierde lo pendiente de mapear; la salida es reenviar esos correos, el mismo mecanismo de D9.
+
+**Limitación aceptada:** un normalizador mejorado no puede volver a correr sobre lo ya guardado. Cambia mucho menos seguido que los parsers.
+
 ### Secretos del usuario (D19)
 
 La llave de API de IA (D6) es el primer secreto que la app custodia y **no puede tratarse como un dato más**.

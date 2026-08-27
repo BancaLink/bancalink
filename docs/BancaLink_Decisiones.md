@@ -19,7 +19,7 @@ Ante este vacío, las apps que existen recurren a un truco: leen los correos de 
 ## **Índice rápido de decisiones**
 
 * **Legal y Comunidad:** \[D1\] Licencia AGPLv3, \[D13\] Marca registrada, \[D14\] Acuerdos de contribución, \[D22\] Los parsers son datos, no código, \[Extra\] Figura legal.  
-* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas, \[D25\] Versiones de parsers.  
+* **Arquitectura y Privacidad:** \[D2\] Relay ciego \+ Local-first, \[D3\] Ingesta por reenvío, \[D6\] El rol de la IA, \[D7\] Parsers compartidos, \[D8\] Respaldos en tu propia nube, \[D9\] Manejo de claves, \[D15\] Sin cuentas ni registro, \[D16\] Cómo recuperás tu historial, \[D19\] Dónde vive tu llave de IA, \[D20\] Los parsers se comparten, \[D21\] Cómo se arma un parser, \[D23\] Seguridad de las reglas, \[D25\] Versiones de parsers, \[D26\] Qué se guarda del correo.  
 * **Producto y Datos:** \[D4\] Para quién diseñamos, \[D5\] Alcance inicial, \[D12\] Cero telemetría, \[D10\] Sincronización sin conflictos, \[D11\] Manejo de monedas, \[D17\] Saldos y discrepancias, \[D18\] De dónde sale el tipo de cambio, \[D24\] Tu período y los dos presupuestos.
 
 ## **1\. Reglas de juego (Legal y Comunidad)**
@@ -190,7 +190,35 @@ Pero D12 también dice dónde sí hay evidencia: la actividad pública en GitHub
 
 **Y si no te convence, podés volver a la versión anterior.** La biblioteca conserva las versiones viejas, y tu elección se sincroniza con tus otros dispositivos.
 
-**Con una limitación que hay que decir de frente:** volver a una versión anterior afecta los **correos que lleguen de ahí en adelante**. Las transacciones que ya se guardaron mal se corrigen a mano, como cualquier otra edición. Volver a procesar lo viejo requeriría que la app hubiera guardado el correo original, y **todavía no está decidido cuánto tiempo se guardan** — queda como pregunta abierta.
+**Con una limitación que depende de D26:** volver a una versión anterior solo reprocesa los correos que la app todavía tenga guardados. Pasada esa ventana, las transacciones mal guardadas se corrigen a mano, como cualquier otra edición.
+
+### **D26 — No guardamos tus correos: guardamos lo mínimo para poder corregir (27 Agosto 2026\)**
+
+*Decisión nueva, surgida al preguntarnos cuánto tiempo conservar el correo original.*
+
+Había una tensión sin resolver. Para que puedas arreglar un parser que leyó mal (D21) o volver a una versión anterior (D25), la app necesita el correo. Pero un correo bancario es el dato más delicado que toca el sistema, y guardarlo es un riesgo en sí mismo.
+
+**La salida fue darse cuenta de que el correo no hace falta.** Lo que la app necesita para volver a interpretar —y lo que necesita para que vos marqués los campos a mano— no es el correo completo: es el **contenido ya limpio y ordenado**, sin todo lo demás que el correo arrastra.
+
+Y "todo lo demás" resulta ser justo lo peor:
+
+- Los encabezados y los identificadores que el proveedor de correo le pega a cada mensaje.
+- Las **firmas digitales del banco**, que convierten el correo en un documento verificable ante terceros. Un correo firmado no es solo información: es prueba.
+- Los enlaces con tu identificador adentro y los pixeles de rastreo. El del BCR, sin ir más lejos, lleva la transacción entera metida en el enlace de WhatsApp.
+- Las imágenes del banco, que son el **90% del peso** y no sirven para nada.
+
+Guardando solo el contenido limpio, el riesgo baja mucho y el peso también. Sigue habiendo datos tuyos ahí —tu nombre y los últimos dígitos de la tarjeta están en el cuerpo del mensaje— pero es una fracción de lo que era.
+
+**Cuánto tiempo:**
+
+- **Un correo que la app no entendió se guarda hasta que se resuelva.** Es trabajo pendiente: si se borra, la posibilidad de arreglarlo desaparece con él.
+- **Uno que sí se entendió se guarda unos treinta días**, y podés bajarlo a cero. Alcanza para confirmar que quedó bien y para que llegue un arreglo si algo estaba mal.
+
+La idea de fondo: **esto sirve para corregir, no para archivar.** El archivo es tu historial de transacciones. Pasado el momento de corregir, guardar el contenido del correo es acumular datos delicados sin un para qué.
+
+**No se sube a la nube.** Se queda en tu dispositivo. El respaldo se mantiene liviano, y lo más sensible que la app deriva no viaja a Google Drive aunque vaya cifrado. Si reinstalás perdés los correos que quedaron pendientes de arreglar — la salida es la de siempre: reenviás esos correos del banco y vuelven a entrar.
+
+**Lo que se pierde:** si algún día mejoramos la forma de limpiar los correos, lo ya guardado se queda como está. Es un intercambio aceptable, porque esa parte cambia mucho menos seguido que los parsers.
 
 ### **D21 — El parser lo armás vos; la IA solo te adelanta el trabajo (26 Agosto 2026\)**
 
@@ -322,15 +350,9 @@ Quedan dos notas del análisis que siguen siendo válidas para cuando se impleme
 - **Una biblioteca de reconocimiento de entidades (tipo spaCy) puede servir como malla extra en CI**, sobre todo para nombres de persona, que no tienen formato fijo como una cédula o un número de cuenta. Pero es probabilística y sus modelos en español están entrenados con noticias, así que sobre correos bancarios ticos rendiría regular. Red de seguridad, nunca la garantía.
 - **Ojo con meter otro lenguaje al monorepo.** spaCy es Python y todo el stack es TypeScript. Como herramienta de mantenedor en CI es aceptable; como código que se distribuye, contradice la arquitectura.
 
-### **Cuánto tiempo se guarda el correo original (abierta desde el 27 Agosto 2026\)**
+### ~~Cuánto tiempo se guarda el correo original~~ — **resuelta en D26** (abierta 27 Ago 2026, cerrada 27 Ago 2026)
 
-Surgió al escribir D25. Hoy no está decidido si la app conserva el correo después de haberlo interpretado, y de eso dependen tres cosas que ya prometimos o vamos a querer:
-
-- **Volver a procesar con otro parser.** D25 deja volver a una versión anterior, pero eso solo arregla los correos futuros. Sin el correo original, lo ya guardado se corrige a mano.
-- **El mapeador manual (D21) necesita el correo.** Para que alguien marque dónde está el monto, el correo tiene que seguir ahí. Al menos los que **no** se pudieron interpretar hay que guardarlos, o la función no existe.
-- **Guardar correos bancarios en el dispositivo es un riesgo en sí mismo.** Son los datos más sensibles que toca el sistema, y hoy la app los descarta apenas los convierte en transacciones.
-
-Las tres tiran para lados distintos: la primera y la segunda piden guardar, la tercera pide botar. Probablemente la respuesta sea "los no interpretados se guardan hasta que se arreglen; los interpretados se botan o duran poco", pero hay que decidirlo con cuidado y escribir por qué.
+Se resolvió cambiando la pregunta: no se guarda el correo, se guarda el contenido ya limpio. Con eso se conserva lo que hace falta para corregir y se descarta lo que hacía peligroso guardarlo — encabezados, firmas digitales, enlaces con identificador e imágenes.
 
 *Nota de equipo: Este documento está vivo. Si en el futuro cambiamos de opinión en alguna de estas decisiones, no borraremos el historial. Simplemente agregaremos la fecha, qué decidimos cambiar y por qué, para mantener nuestra historia transparente.*
 
